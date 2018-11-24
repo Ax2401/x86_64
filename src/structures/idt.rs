@@ -14,6 +14,7 @@ use core::fmt;
 use core::marker::PhantomData;
 use core::ops::{Index, IndexMut};
 use {PrivilegeLevel, VirtAddr};
+use either::{Either};
 
 /// An Interrupt Descriptor Table with 256 entries.
 ///
@@ -42,7 +43,7 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the instruction that caused the `#DE`.
     ///
     /// The vector number of the `#DE` exception is 0.
-    pub divide_by_zero: Entry<HandlerFunc>,
+    pub divide_by_zero: Entry<HandlerFuncType>,
 
     /// When the debug-exception mechanism is enabled, a `#DB` exception can occur under any
     /// of the following circumstances:
@@ -74,7 +75,7 @@ pub struct InterruptDescriptorTable {
     /// instruction pointer points to the instruction after the one that caused the `#DB`.
     ///
     /// The vector number of the `#DB` exception is 1.
-    pub debug: Entry<HandlerFunc>,
+    pub debug: Entry<HandlerFuncType>,
 
     /// An non maskable interrupt exception (NMI) occurs as a result of system logic
     /// signaling a non-maskable interrupt to the processor.
@@ -84,7 +85,7 @@ pub struct InterruptDescriptorTable {
     /// boundary where the NMI was recognized.
     ///
     /// The vector number of the NMI exception is 2.
-    pub non_maskable_interrupt: Entry<HandlerFunc>,
+    pub non_maskable_interrupt: Entry<HandlerFuncType>,
 
     /// A breakpoint (`#BP`) exception occurs when an `INT3` instruction is executed. The
     /// `INT3` is normally used by debug software to set instruction breakpoints by replacing
@@ -92,7 +93,7 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the byte after the `INT3` instruction.
     ///
     /// The vector number of the `#BP` exception is 3.
-    pub breakpoint: Entry<HandlerFunc>,
+    pub breakpoint: Entry<HandlerFuncType>,
 
     /// An overflow exception (`#OF`) occurs as a result of executing an `INTO` instruction
     /// while the overflow bit in `RFLAGS` is set to 1.
@@ -101,7 +102,7 @@ pub struct InterruptDescriptorTable {
     /// instruction that caused the `#OF`.
     ///
     /// The vector number of the `#OF` exception is 4.
-    pub overflow: Entry<HandlerFunc>,
+    pub overflow: Entry<HandlerFuncType>,
 
     /// A bound-range exception (`#BR`) exception can occur as a result of executing
     /// the `BOUND` instruction. The `BOUND` instruction compares an array index (first
@@ -111,7 +112,7 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the `BOUND` instruction that caused the `#BR`.
     ///
     /// The vector number of the `#BR` exception is 5.
-    pub bound_range_exceeded: Entry<HandlerFunc>,
+    pub bound_range_exceeded: Entry<HandlerFuncType>,
 
     /// An invalid opcode exception (`#UD`) occurs when an attempt is made to execute an
     /// invalid or undefined opcode. The validity of an opcode often depends on the
@@ -145,7 +146,7 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the instruction that caused the `#UD`.
     ///
     /// The vector number of the `#UD` exception is 6.
-    pub invalid_opcode: Entry<HandlerFunc>,
+    pub invalid_opcode: Entry<HandlerFuncType>,
 
     /// A device not available exception (`#NM`) occurs under any of the following conditions:
     ///
@@ -162,7 +163,7 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the instruction that caused the `#NM`.
     ///
     /// The vector number of the `#NM` exception is 7.
-    pub device_not_available: Entry<HandlerFunc>,
+    pub device_not_available: Entry<HandlerFuncType>,
 
     /// A double fault (`#DF`) exception can occur when a second exception occurs during
     /// the handling of a prior (first) exception or interrupt handler.
@@ -179,7 +180,7 @@ pub struct InterruptDescriptorTable {
     /// - Invalid-TSS Exception
     /// - Segment-Not-Present Exception
     /// - Stack Exception
-    /// - General-Protection Exception
+    /// - General-Protection Exceptionset_handler_addr
     ///
     /// A double-fault exception occurs in the following cases:
     ///
@@ -203,7 +204,7 @@ pub struct InterruptDescriptorTable {
     /// the exception condition is caused by an invalid-segment or invalid-page access on an
     /// x87-instruction coprocessor-instruction operand. On current processors, this condition
     /// causes a general-protection exception to occur.
-    coprocessor_segment_overrun: Entry<HandlerFunc>,
+    coprocessor_segment_overrun: Entry<HandlerFuncType>,
 
     /// An invalid TSS exception (`#TS`) occurs only as a result of a control transfer through
     /// a gate descriptor that results in an invalid stack-segment reference using an `SS`
@@ -280,7 +281,7 @@ pub struct InterruptDescriptorTable {
     pub page_fault: Entry<PageFaultHandlerFunc>,
 
     /// vector nr. 15
-    reserved_1: Entry<HandlerFunc>,
+    reserved_1: Entry<HandlerFuncType>,
 
     /// The x87 Floating-Point Exception-Pending exception (`#MF`) is used to handle unmasked x87
     /// floating-point exceptions. In 64-bit mode, the x87 floating point unit is not used
@@ -288,7 +289,7 @@ pub struct InterruptDescriptorTable {
     /// compatibility mode.
     ///
     /// The vector number of the `#MF` exception is 16.
-    pub x87_floating_point: Entry<HandlerFunc>,
+    pub x87_floating_point: Entry<HandlerFuncType>,
 
     /// An alignment check exception (`#AC`) occurs when an unaligned-memory data reference
     /// is performed while alignment checking is enabled. An `#AC` can occur only when CPL=3.
@@ -306,7 +307,7 @@ pub struct InterruptDescriptorTable {
     /// There is no reliable way to restart the program.
     ///
     /// The vector number of the `#MC` exception is 18.
-    pub machine_check: Entry<HandlerFunc>,
+    pub machine_check: Entry<HandlerFuncType>,
 
     /// The SIMD Floating-Point Exception (`#XF`) is used to handle unmasked SSE
     /// floating-point exceptions. The SSE floating-point exceptions reported by
@@ -322,10 +323,10 @@ pub struct InterruptDescriptorTable {
     /// The saved instruction pointer points to the instruction that caused the `#XF`.
     ///
     /// The vector number of the `#XF` exception is 19.
-    pub simd_floating_point: Entry<HandlerFunc>,
+    pub simd_floating_point: Entry<HandlerFuncType>,
 
     /// vector nr. 20
-    pub virtualization: Entry<HandlerFunc>,
+    pub virtualization: Entry<HandlerFuncType>,
 
     /// vector nr. 21-29
     reserved_2: [Entry<HandlerFunc>; 9],
@@ -342,7 +343,7 @@ pub struct InterruptDescriptorTable {
     pub security_exception: Entry<HandlerFuncWithErrCode>,
 
     /// vector nr. 31
-    reserved_3: Entry<HandlerFunc>,
+    reserved_3: Entry<HandlerFuncType>,
 
     /// User-defined interrupts can be initiated either by system logic or software. They occur
     /// when:
@@ -364,7 +365,7 @@ pub struct InterruptDescriptorTable {
     ///   external interrupt was recognized.
     /// - If the interrupt occurs as a result of executing the INTn instruction, the saved
     ///   instruction pointer points to the instruction after the INTn.
-    interrupts: [Entry<HandlerFunc>; 256 - 32],
+    interrupts: [Entry<HandlerFuncType>; 256 - 32],
 }
 
 impl InterruptDescriptorTable {
@@ -444,7 +445,7 @@ impl InterruptDescriptorTable {
 }
 
 impl Index<usize> for InterruptDescriptorTable {
-    type Output = Entry<HandlerFunc>;
+    type Output = Entry<HandlerFuncType>;
 
     /// Returns the IDT entry with the specified index.
     ///
@@ -523,6 +524,10 @@ pub struct Entry<F> {
 
 /// A handler function for an interrupt or an exception without error code.
 pub type HandlerFunc = extern "x86-interrupt" fn(&mut ExceptionStackFrame);
+/// A handler function for a naked interrupt.
+pub type HandlerFuncNaked = extern "C" fn();
+/// A handler function that is either a `HandlerFunc` or a `HandlerFuncNaked`.
+pub type HandlerFuncType = Either<HandlerFunc, HandlerFuncNaked>;
 /// A handler function for an exception that pushes an error code.
 pub type HandlerFuncWithErrCode =
     extern "x86-interrupt" fn(&mut ExceptionStackFrame, error_code: u64);
@@ -567,7 +572,22 @@ impl<F> Entry<F> {
 }
 
 macro_rules! impl_set_handler_fn {
-    ($h:ty) => {
+    (either $h:ty) => {
+        #[cfg(target_arch = "x86_64")]
+        impl Entry<$h> {
+            /// Set the handler function for the IDT entry and sets the present bit.
+            ///
+            /// For the code selector field, this function uses the code segment selector currently
+            /// active in the CPU.
+            ///
+            /// The function returns a mutable reference to the entry's options that allows
+            /// further customization.
+            pub fn set_handler_fn(&mut self, handler: $h) -> &mut EntryOptions {
+                self.set_handler_addr(handler.either(|a| a as u64, |b| b as u64))
+            }
+        }
+    };
+    (default $h:ty) => {
         #[cfg(target_arch = "x86_64")]
         impl Entry<$h> {
             /// Set the handler function for the IDT entry and sets the present bit.
@@ -581,12 +601,12 @@ macro_rules! impl_set_handler_fn {
                 self.set_handler_addr(handler as u64)
             }
         }
-    };
+    }
 }
 
-impl_set_handler_fn!(HandlerFunc);
-impl_set_handler_fn!(HandlerFuncWithErrCode);
-impl_set_handler_fn!(PageFaultHandlerFunc);
+impl_set_handler_fn!(either HandlerFuncType);
+impl_set_handler_fn!(default HandlerFuncWithErrCode);
+impl_set_handler_fn!(default PageFaultHandlerFunc);
 
 /// Represents the options field of an IDT entry.
 #[repr(transparent)]

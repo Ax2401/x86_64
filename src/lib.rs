@@ -23,6 +23,12 @@ extern crate os_bootinfo;
 extern crate usize_conversions;
 extern crate array_init;
 
+/// Provides a type that must be one of two possible types.
+/// 
+/// We use this for allowing interrupt handlers to be either
+/// a naked c-type function or a x86-interrupt-type function.
+pub extern crate either;
+
 /// Provides the non-standard-width integer types `u2`–`u63`.
 ///
 /// We use these integer types in various APIs, for example `u9` for page tables indices.
